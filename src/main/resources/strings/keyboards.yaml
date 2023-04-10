@@ -1,0 +1,19 @@
+newgame:
+  reply: reply_text
+
+test: >
+  first line
+  second line
+  third line
+
+createStatementPrefix: "CREATE TABLE "
+createStatementPostfix: >
+  (
+    task_id SERIAL PRIMARY KEY ,
+    question_id BIGINT UNIQUE NOT NULL ,
+    performed_team_name VARCHAR(100)
+  );
+
+dropStatementPrefix: "DROP TABLE "
+
+findAllPrefix: "SELECT * FROM "
