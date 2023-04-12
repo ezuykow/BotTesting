@@ -1,5 +1,6 @@
 package com.example.bottesting.listeners;
 
+import com.example.bottesting.ListViewer.InlineListViewer;
 import com.example.bottesting.TaskMapper;
 import com.example.bottesting.excel.parser.DocumentManager;
 import com.example.bottesting.strings.KeyboardStrings;
@@ -30,6 +31,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
     private final KeyboardStrings keyboardStrings;
     private final JdbcTemplate jdbcTemplate;
     private final DocumentManager docManager;
+    private final InlineListViewer inlineListViewer;
 
     @Value("${test}")
     private String testValue;
@@ -42,11 +44,12 @@ public class BotTestingUpdateListener implements UpdatesListener {
     @Value("${findAllPrefix}")
     private String findAllStatement;
 
-    public BotTestingUpdateListener(TelegramBot telegramBot, KeyboardStrings keyboardStrings, JdbcTemplate jdbcTemplate, DocumentManager docManager) {
+    public BotTestingUpdateListener(TelegramBot telegramBot, KeyboardStrings keyboardStrings, JdbcTemplate jdbcTemplate, DocumentManager docManager, InlineListViewer inlineListViewer) {
         this.telegramBot = telegramBot;
         this.keyboardStrings = keyboardStrings;
         this.jdbcTemplate = jdbcTemplate;
         this.docManager = docManager;
+        this.inlineListViewer = inlineListViewer;
     }
 
     @PostConstruct
@@ -61,7 +64,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
     }
 
     private void doAction(Update update) {
-        logger.info("Работаю над командой: {}", update);
+        logger.info("Worked with update: {}", update);
 
         Optional<String> msgText = tryToGetText(update);
         msgText.ifPresent(s -> switchTextAction(s, update));
@@ -74,9 +77,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
     }
 
     private void switchTextAction(String text, Update update) {
-
-
-        logger.info("Текст апдейта: {}", text);
+        logger.info("Update's text: {}", text);
         switch (text) {
             case "/InlineKeyboard" -> inlineKeyboard(update);
             case "/ReplyKeyboard" -> replyKeyboard(update);
@@ -86,6 +87,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
             case "Show all" -> showAll();
             case "format" -> format();
             case "userinfo" -> showUsername(update);
+            case "list" -> inlineListViewer.start(update.message().chat().id());
             default -> defaultAction(update);
         }
     }
@@ -127,6 +129,23 @@ public class BotTestingUpdateListener implements UpdatesListener {
 //                    telegramBot.execute(new SendMessage(update.message().chat().id(), "B1_1"));
             case "B1_2" -> telegramBot.execute(new SendMessage(update.message().chat().id(), "B1_2"));
             case "B2_1" -> telegramBot.execute(new SendMessage(update.message().chat().id(), "B2_1"));
+            default -> checkByRegExp(text, update);
+        }
+
+    }
+
+    private void checkByRegExp(String text, Update update) {
+        if (text.matches("Switch page to next.*")) {
+            inlineListViewer.switchPageToNext(update);
+        }
+        if (text.matches("Switch page to previous.*")) {
+            inlineListViewer.switchPageToPrevious(update);
+        }
+        if (text.matches("Delete message")) {
+            inlineListViewer.deleteMessage(update);
+        }
+        if (text.matches("Taken index:.*")) {
+            inlineListViewer.viewChoosenElement(update);
         }
     }
 
@@ -173,7 +192,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
         try {
             return Optional.of(update.message().text());
         } catch (NullPointerException e) {
-            logger.info("Update не содержит текст");
+            logger.info("Update haven't text");
             return Optional.empty();
         }
     }
@@ -182,7 +201,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
         try {
             return Optional.of(update.callbackQuery().data());
         } catch (NullPointerException e) {
-            logger.info("Update не содержит callbackQuery");
+            logger.info("Update haven't callbackQuery");
             return Optional.empty();
         }
     }
@@ -191,7 +210,7 @@ public class BotTestingUpdateListener implements UpdatesListener {
         try {
             return Optional.of(update.message().document());
         } catch (NullPointerException e) {
-            logger.info("Update не содержит document");
+            logger.info("Update haven't document");
             return Optional.empty();
         }
     }
